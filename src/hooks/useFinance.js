@@ -232,6 +232,10 @@ export function useFinance() {
         setCategories(prev => [...prev, { ...data, id: Date.now() }])
     }
 
+    const updateCategory = (id, data) => {
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, ...data } : c))
+    }
+
     const deleteCategory = (id) => {
         setCategories(prev => prev.filter(c => c.id !== id))
     }
@@ -257,6 +261,7 @@ export function useFinance() {
         addTransaction,
         deleteTransaction,
         addCategory,
+        updateCategory,
         deleteCategory,
         addCommitment,
         deleteCommitment,
