@@ -46,6 +46,28 @@ export function useFinance() {
         }
     }, [cloudUrl])
 
+    const pushAllToCloud = useCallback(async () => {
+        if (!cloudUrl || transactions.length === 0) return
+        setIsSyncing(true)
+        try {
+            // Push each transaction one by one (simplest for the current Apps Script setup)
+            for (const tx of transactions) {
+                await fetch(cloudUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tx)
+                })
+            }
+            alert('All local data has been pushed to the cloud!')
+        } catch (error) {
+            console.error('Push All Error:', error)
+            alert('Failed to push all data. Check connection.')
+        } finally {
+            setIsSyncing(false)
+        }
+    }, [cloudUrl, transactions])
+
     const fetchFromCloud = useCallback(async () => {
         if (!cloudUrl) {
             alert('Please enter your Web App URL first.')
@@ -127,6 +149,7 @@ export function useFinance() {
         deleteTransaction,
         addCategory,
         deleteCategory,
-        fetchFromCloud
+        fetchFromCloud,
+        pushAllToCloud
     }
 }

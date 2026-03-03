@@ -65,9 +65,10 @@ function App() {
           {activeTab === 'cloud-sync' && (
             <CloudSync
               cloudUrl={finance.cloudUrl}
-              setCloudUrl={finance.setCloudUrl}
+              onUrlChange={finance.setCloudUrl}
               isSyncing={finance.isSyncing}
-              fetchFromCloud={finance.fetchFromCloud}
+              onSync={finance.fetchFromCloud}
+              onPush={finance.pushAllToCloud}
             />
           )}
         </section>
