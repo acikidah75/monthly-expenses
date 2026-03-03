@@ -11,6 +11,11 @@ export function useFinance() {
         return saved ? JSON.parse(saved) : []
     })
 
+    const [commitments, setCommitments] = useState(() => {
+        const saved = localStorage.getItem('monthly_exp_commitments')
+        return saved ? JSON.parse(saved) : []
+    })
+
     const [cloudUrl, setCloudUrl] = useState(() => {
         return localStorage.getItem('monthly_exp_cloud_url') || ''
     })
@@ -24,6 +29,10 @@ export function useFinance() {
     useEffect(() => {
         localStorage.setItem('monthly_exp_categories', JSON.stringify(categories))
     }, [categories])
+
+    useEffect(() => {
+        localStorage.setItem('monthly_exp_commitments', JSON.stringify(commitments))
+    }, [commitments])
 
     useEffect(() => {
         localStorage.setItem('monthly_exp_cloud_url', cloudUrl)
@@ -138,9 +147,18 @@ export function useFinance() {
         setCategories(prev => prev.filter(c => c.id !== id))
     }
 
+    const addCommitment = (data) => {
+        setCommitments(prev => [...prev, { ...data, id: Date.now() }])
+    }
+
+    const deleteCommitment = (id) => {
+        setCommitments(prev => prev.filter(c => c.id !== id))
+    }
+
     return {
         transactions,
         categories,
+        commitments,
         stats,
         cloudUrl,
         setCloudUrl,
@@ -149,6 +167,8 @@ export function useFinance() {
         deleteTransaction,
         addCategory,
         deleteCategory,
+        addCommitment,
+        deleteCommitment,
         fetchFromCloud,
         pushAllToCloud
     }

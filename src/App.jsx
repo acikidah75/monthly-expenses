@@ -8,6 +8,8 @@ import CategoryMaster from './components/CategoryMaster'
 import History from './components/History'
 import Analytics from './components/Analytics'
 import CloudSync from './components/CloudSync'
+import CommitmentMaster from './components/CommitmentMaster'
+import CommitmentTracker from './components/CommitmentTracker'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -19,6 +21,8 @@ function App() {
     { id: 'expenses', label: 'Expenses', icon: '💸' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'history', label: 'History', icon: '📜' },
+    { id: 'commitment-tracker', label: 'Commitment Tracker', icon: '📅' },
+    { id: 'commitment-master', label: 'Commitment Master', icon: '📋' },
     { id: 'category-master', label: 'Categories', icon: '⚙️' },
     { id: 'cloud-sync', label: 'Cloud Sync', icon: '☁️' },
   ]
@@ -62,6 +66,21 @@ function App() {
           {activeTab === 'analytics' && <Analytics transactions={finance.transactions} categories={finance.categories} />}
           {activeTab === 'history' && <History transactions={finance.transactions} deleteTransaction={finance.deleteTransaction} />}
           {activeTab === 'category-master' && <CategoryMaster categories={finance.categories} addCategory={finance.addCategory} updateCategory={finance.updateCategory} deleteCategory={finance.deleteCategory} />}
+          {activeTab === 'commitment-master' && (
+            <CommitmentMaster
+              commitments={finance.commitments}
+              categories={finance.categories}
+              addCommitment={finance.addCommitment}
+              deleteCommitment={finance.deleteCommitment}
+            />
+          )}
+          {activeTab === 'commitment-tracker' && (
+            <CommitmentTracker
+              commitments={finance.commitments}
+              transactions={finance.transactions}
+              addTransaction={finance.addTransaction}
+            />
+          )}
           {activeTab === 'cloud-sync' && (
             <CloudSync
               cloudUrl={finance.cloudUrl}
