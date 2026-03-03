@@ -56,22 +56,34 @@ export function useFinance() {
     }, [cloudUrl])
 
     const pushAllToCloud = useCallback(async () => {
-        if (!cloudUrl || transactions.length === 0) return
+        if (!cloudUrl) {
+            alert('Cloud URL is missing!')
+            return
+        }
+        if (transactions.length === 0) {
+            alert('No local transactions found to push!')
+            return
+        }
+
         setIsSyncing(true)
+        console.log('Pushing transactions:', transactions.length)
+
         try {
-            // Push each transaction one by one (simplest for the current Apps Script setup)
+            let successCount = 0
+            // Push each transaction one by one
             for (const tx of transactions) {
-                await fetch(cloudUrl, {
+                const response = await fetch(cloudUrl, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(tx)
                 })
+                successCount++
             }
-            alert('All local data has been pushed to the cloud!')
+            alert(`Success! ${successCount} records pushed to Google Sheets.`)
         } catch (error) {
             console.error('Push All Error:', error)
-            alert('Failed to push all data. Check connection.')
+            alert('Failed to push data: ' + error.message)
         } finally {
             setIsSyncing(false)
         }
