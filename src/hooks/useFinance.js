@@ -38,15 +38,15 @@ export function useFinance() {
         localStorage.setItem('monthly_exp_cloud_url', cloudUrl)
     }, [cloudUrl])
 
-    const syncToCloud = useCallback(async (data) => {
+    const syncToCloud = useCallback(async (data, tab = 'Transactions') => {
         if (!cloudUrl) return
         setIsSyncing(true)
         try {
             await fetch(cloudUrl, {
                 method: 'POST',
-                mode: 'no-cors', // Apps Script requires no-cors for simple POSTs
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({ ...data, tab })
             })
         } catch (error) {
             console.error('Cloud Sync Error:', error)
@@ -60,34 +60,34 @@ export function useFinance() {
             alert('Cloud URL is missing!')
             return
         }
-        if (transactions.length === 0) {
-            alert('No local transactions found to push!')
-            return
-        }
-
         setIsSyncing(true)
-        console.log('Pushing transactions:', transactions.length)
-
         try {
-            let successCount = 0
-            // Push each transaction one by one
+            // Push Transactions
             for (const tx of transactions) {
-                const response = await fetch(cloudUrl, {
+                await fetch(cloudUrl, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(tx)
+                    body: JSON.stringify({ ...tx, tab: 'Transactions' })
                 })
-                successCount++
             }
-            alert(`Success! ${successCount} records pushed to Google Sheets.`)
+            // Push Commitments
+            for (const cm of commitments) {
+                await fetch(cloudUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...cm, tab: 'Commitments' })
+                })
+            }
+            alert(`Success! Data pushed to Google Sheets.`)
         } catch (error) {
             console.error('Push All Error:', error)
             alert('Failed to push data: ' + error.message)
         } finally {
             setIsSyncing(false)
         }
-    }, [cloudUrl, transactions])
+    }, [cloudUrl, transactions, commitments])
 
     const fetchFromCloud = useCallback(async () => {
         if (!cloudUrl) {
@@ -99,35 +99,51 @@ export function useFinance() {
             const resp = await fetch(cloudUrl)
             if (!resp.ok) throw new Error('Network response was not ok')
 
-            const data = await resp.json()
-            if (!Array.isArray(data)) throw new Error('Data is not an array')
+            const result = await resp.json()
 
-            // Map cloud data (which has keys from headers) back to application format
-            const formattedData = data.map(item => ({
-                date: item['Date'] || new Date().toISOString().split('T')[0],
-                type: item['Type'] || 'expense',
-                category: item['Source/Category'] || 'Other',
-                source: item['Source/Category'] || 'Other',
-                amount: parseFloat(item['Amount'] || 0),
-                description: item['Details'] || '',
-                id: item['ID'] || Date.now() + Math.random(),
-                attachment: item['Attachment URL'] || ''
-            }))
+            // 1. Process Transactions
+            if (result.transactions && Array.isArray(result.transactions)) {
+                const formattedTx = result.transactions.map(item => ({
+                    date: item['Date'] || new Date().toISOString().split('T')[0],
+                    type: item['Type'] || 'expense',
+                    category: item['Source/Category'] || 'Other',
+                    source: item['Source/Category'] || 'Other',
+                    amount: parseFloat(item['Amount'] || 0),
+                    description: item['Details'] || '',
+                    id: item['ID'] || Date.now() + Math.random(),
+                    attachment: item['Attachment URL'] || ''
+                }))
 
-            // Merge with local data, avoiding duplicates based on ID
-            setTransactions(prev => {
-                const localIds = new Set(prev.map(t => t.id.toString()))
-                const newRecords = formattedData.filter(t => t.id && !localIds.has(t.id.toString()))
-                const combined = [...newRecords, ...prev]
-                // Deduplicate in case of duplicate IDs in the mesh
-                const unique = Array.from(new Map(combined.map(item => [item.id, item])).values())
-                return unique.sort((a, b) => new Date(b.date) - new Date(a.date))
-            })
+                setTransactions(prev => {
+                    const localIds = new Set(prev.map(t => t.id.toString()))
+                    const newRecords = formattedTx.filter(t => t.id && !localIds.has(t.id.toString()))
+                    const combined = [...newRecords, ...prev]
+                    const unique = Array.from(new Map(combined.map(item => [item.id, item])).values())
+                    return unique.sort((a, b) => new Date(b.date) - new Date(a.date))
+                })
+            }
 
-            alert('Successfully synced with cloud!')
+            // 2. Process Commitments
+            if (result.commitments && Array.isArray(result.commitments)) {
+                const formattedCm = result.commitments.map(item => ({
+                    name: item['Name'],
+                    estimatedAmount: parseFloat(item['Estimated Amount'] || 0),
+                    category: item['Category'],
+                    id: item['ID']
+                }))
+
+                setCommitments(prev => {
+                    const localIds = new Set(prev.map(c => c.id.toString()))
+                    const newRecords = formattedCm.filter(c => c.id && !localIds.has(c.id.toString()))
+                    const combined = [...newRecords, ...prev]
+                    return Array.from(new Map(combined.map(item => [item.id, item])).values())
+                })
+            }
+
+            alert('Successfully synced everything from cloud!')
         } catch (error) {
             console.error('Cloud Fetch Error:', error)
-            alert('Cloud Sync Failed: \n1. Ensure your Tab is named "Transactions"\n2. Ensure your headers match exactly\n3. Ensure your Web App is deployed as "Anyone"')
+            alert('Cloud Sync Failed. Please update your Apps Script and check your headers.')
         } finally {
             setIsSyncing(false)
         }
@@ -159,8 +175,10 @@ export function useFinance() {
         setCategories(prev => prev.filter(c => c.id !== id))
     }
 
-    const addCommitment = (data) => {
-        setCommitments(prev => [...prev, { ...data, id: Date.now() }])
+    const addCommitment = async (data) => {
+        const newCm = { ...data, id: Date.now() }
+        setCommitments(prev => [...prev, newCm])
+        if (cloudUrl) await syncToCloud(newCm, 'Commitments')
     }
 
     const deleteCommitment = (id) => {
