@@ -93,32 +93,35 @@ export function useFinance() {
         }
         setIsSyncing(true)
         try {
-            // Push Transactions
-            for (const tx of transactions) {
-                await fetch(cloudUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...tx, tab: 'Transactions' })
-                })
+            // Prepare settings data
+            const settings = {
+                cloudUrl,
+                passcode: passcode ? '***PROTECTED***' : '', // Don't send actual passcode for security
+                lastSync: new Date().toISOString(),
+                appVersion: '1.0.0'
             }
-            // Push Commitments
-            for (const cm of commitments) {
-                await fetch(cloudUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...cm, tab: 'Commitments' })
+
+            // Send everything in a single batch — Apps Script will clear & rewrite sheets
+            await fetch(cloudUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tab: 'ALL',
+                    transactions,
+                    commitments,
+                    categories,
+                    settings
                 })
-            }
-            alert(`Success! Data pushed to Google Sheets.`)
+            })
+            alert('Success! All data (Transactions, Categories, Commitments, and Settings) pushed to Google Sheets.')
         } catch (error) {
             console.error('Push All Error:', error)
             alert('Failed to push data: ' + error.message)
         } finally {
             setIsSyncing(false)
         }
-    }, [cloudUrl, transactions, commitments])
+    }, [cloudUrl, transactions, commitments, categories, passcode])
 
     const fetchFromCloud = useCallback(async () => {
         if (!cloudUrl) {
@@ -169,6 +172,33 @@ export function useFinance() {
                     const combined = [...newRecords, ...prev]
                     return Array.from(new Map(combined.map(item => [item.id, item])).values())
                 })
+            }
+
+            // 3. Process Categories
+            if (result.categories && Array.isArray(result.categories)) {
+                const formattedCat = result.categories.map(item => ({
+                    code: item['Code'] || '',
+                    description: item['Description'] || '',
+                    lhdn: item['LHDN Segment'] || '',
+                    id: item['ID']
+                }))
+
+                setCategories(prev => {
+                    const localIds = new Set(prev.map(c => c.id.toString()))
+                    const newRecords = formattedCat.filter(c => c.id && !localIds.has(c.id.toString()))
+                    const combined = [...newRecords, ...prev]
+                    return Array.from(new Map(combined.map(item => [item.id, item])).values())
+                })
+            }
+
+            // 4. Process Settings (optional - don't overwrite sensitive data like passcode)
+            if (result.settings && Array.isArray(result.settings)) {
+                // Only sync non-sensitive settings
+                const settingsData = result.settings.find(item => item['Setting Type'] === 'app_config')
+                if (settingsData) {
+                    // You can add logic here to sync non-sensitive settings if needed
+                    console.log('Settings synced from cloud:', settingsData)
+                }
             }
 
             alert('Successfully synced everything from cloud!')

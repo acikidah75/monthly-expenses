@@ -78,7 +78,7 @@ function App() {
         </header>
 
         <section className="view-container fade-in">
-          {activeTab === 'dashboard' && <Dashboard stats={finance.stats} />}
+          {activeTab === 'dashboard' && <Dashboard transactions={finance.transactions} />}
           {activeTab === 'income' && <IncomeForm addTransaction={finance.addTransaction} />}
           {activeTab === 'expenses' && <ExpenseForm categories={finance.categories} addTransaction={finance.addTransaction} />}
           {activeTab === 'analytics' && <Analytics transactions={finance.transactions} categories={finance.categories} />}

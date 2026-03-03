@@ -3,7 +3,7 @@ export default function CloudSync({ cloudUrl, onUrlChange, isSyncing, onSync, on
         <div className="cloud-sync fade-in">
             <div className="glass-card">
                 <h3>Cloud Storage Settings</h3>
-                <p className="text-muted mt-1">Connect your app to Google Sheets to access your data from anywhere. Follow the <a href="#" onClick={(e) => { e.preventDefault(); alert('Please refer to the cloud_setup.md file in your project.') }} className="link">Setup Guide</a> to get your Web App URL.</p>
+                <p className="text-muted mt-1">Connect your app to Google Sheets to access your data from anywhere. This will sync Transactions, Categories, Commitments, and Settings. Follow the <a href="#" onClick={(e) => { e.preventDefault(); alert('Please refer to the cloud_setup.md file in your project.') }} className="link">Setup Guide</a> to get your Web App URL.</p>
 
                 <div className="input-group mt-2">
                     <label>Google Apps Script Web App URL</label>
@@ -29,11 +29,21 @@ export default function CloudSync({ cloudUrl, onUrlChange, isSyncing, onSync, on
                         disabled={isSyncing || !cloudUrl}
                         className="btn-secondary"
                     >
-                        🚀 Push Local Data to Cloud
+                        🚀 Push All Data to Cloud
                     </button>
                 </div>
 
                 {isSyncing && <p className="sync-status mt-1">Synchronizing with cloud...</p>}
+            </div>
+
+            <div className="glass-card mt-2">
+                <h3>What gets synced?</h3>
+                <ul className="mt-1 feature-list">
+                    <li><strong>Transactions:</strong> All your income and expense records</li>
+                    <li><strong>Categories:</strong> Your custom expense categories and LHDN segments</li>
+                    <li><strong>Commitments:</strong> Your monthly commitment definitions</li>
+                    <li><strong>Settings:</strong> App configuration and sync timestamps</li>
+                </ul>
             </div>
 
             <div className="glass-card mt-2">
