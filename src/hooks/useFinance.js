@@ -20,6 +20,11 @@ export function useFinance() {
         return localStorage.getItem('monthly_exp_cloud_url') || ''
     })
 
+    const [passcode, setPasscode] = useState(() => {
+        return localStorage.getItem('monthly_exp_passcode') || ''
+    })
+
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false)
 
     useEffect(() => {
@@ -37,6 +42,32 @@ export function useFinance() {
     useEffect(() => {
         localStorage.setItem('monthly_exp_cloud_url', cloudUrl)
     }, [cloudUrl])
+
+    useEffect(() => {
+        localStorage.setItem('monthly_exp_passcode', passcode)
+    }, [passcode])
+
+    const login = (code) => {
+        if (!passcode) {
+            // First time setup
+            setPasscode(code)
+            setIsLoggedIn(true)
+            return true
+        }
+        if (code === passcode) {
+            setIsLoggedIn(true)
+            return true
+        }
+        return false
+    }
+
+    const logout = () => {
+        setIsLoggedIn(false)
+    }
+
+    const updatePasscode = (newCode) => {
+        setPasscode(newCode)
+    }
 
     const syncToCloud = useCallback(async (data, tab = 'Transactions') => {
         if (!cloudUrl) return
@@ -200,6 +231,11 @@ export function useFinance() {
         addCommitment,
         deleteCommitment,
         fetchFromCloud,
-        pushAllToCloud
+        pushAllToCloud,
+        login,
+        logout,
+        updatePasscode,
+        isLoggedIn,
+        hasPasscode: !!passcode
     }
 }

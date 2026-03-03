@@ -10,10 +10,20 @@ import Analytics from './components/Analytics'
 import CloudSync from './components/CloudSync'
 import CommitmentMaster from './components/CommitmentMaster'
 import CommitmentTracker from './components/CommitmentTracker'
+import Login from './components/Login'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const finance = useFinance()
+
+  if (!finance.isLoggedIn) {
+    return (
+      <Login
+        onLogin={finance.login}
+        isFirstTime={!finance.hasPasscode}
+      />
+    )
+  }
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -56,6 +66,14 @@ function App() {
           <div className="user-profile">
             <span className="avatar">👤</span>
             <span className="username">My Account</span>
+            <button
+              onClick={finance.logout}
+              className="btn-icon"
+              style={{ marginLeft: '1rem', background: 'transparent' }}
+              title="Logout"
+            >
+              🚪
+            </button>
           </div>
         </header>
 
