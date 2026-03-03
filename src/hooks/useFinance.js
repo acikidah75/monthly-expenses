@@ -47,35 +47,44 @@ export function useFinance() {
     }, [cloudUrl])
 
     const fetchFromCloud = useCallback(async () => {
-        if (!cloudUrl) return
+        if (!cloudUrl) {
+            alert('Please enter your Web App URL first.')
+            return
+        }
         setIsSyncing(true)
         try {
             const resp = await fetch(cloudUrl)
+            if (!resp.ok) throw new Error('Network response was not ok')
+
             const data = await resp.json()
+            if (!Array.isArray(data)) throw new Error('Data is not an array')
 
             // Map cloud data (which has keys from headers) back to application format
             const formattedData = data.map(item => ({
-                date: item['Date'],
-                type: item['Type'],
-                category: item['Type'] === 'expense' ? item['Source/Category'] : undefined,
-                source: item['Type'] === 'income' ? item['Source/Category'] : undefined,
-                amount: item['Amount'],
-                description: item['Details'],
-                id: item['ID'],
-                attachment: item['Attachment URL']
+                date: item['Date'] || new Date().toISOString().split('T')[0],
+                type: item['Type'] || 'expense',
+                category: item['Source/Category'] || 'Other',
+                source: item['Source/Category'] || 'Other',
+                amount: parseFloat(item['Amount'] || 0),
+                description: item['Details'] || '',
+                id: item['ID'] || Date.now() + Math.random(),
+                attachment: item['Attachment URL'] || ''
             }))
 
             // Merge with local data, avoiding duplicates based on ID
             setTransactions(prev => {
-                const localIds = new Set(prev.map(t => t.id))
-                const newRecords = formattedData.filter(t => !localIds.has(t.id))
-                return [...newRecords, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date))
+                const localIds = new Set(prev.map(t => t.id.toString()))
+                const newRecords = formattedData.filter(t => t.id && !localIds.has(t.id.toString()))
+                const combined = [...newRecords, ...prev]
+                // Deduplicate in case of duplicate IDs in the mesh
+                const unique = Array.from(new Map(combined.map(item => [item.id, item])).values())
+                return unique.sort((a, b) => new Date(b.date) - new Date(a.date))
             })
 
             alert('Successfully synced with cloud!')
         } catch (error) {
             console.error('Cloud Fetch Error:', error)
-            alert('Cloud Sync Failed: Check your Web App URL and Sheet headers.')
+            alert('Cloud Sync Failed: \n1. Ensure your Tab is named "Transactions"\n2. Ensure your headers match exactly\n3. Ensure your Web App is deployed as "Anyone"')
         } finally {
             setIsSyncing(false)
         }
